@@ -112,3 +112,7 @@ Disqualifiers are checked first — a disqualified candidate is not scored furth
 - Do not expose API keys or service account credentials to the browser — all AI and Sheets calls are server-side only.
 - Do not use Opus for resume scoring. That's Haiku's job.
 - Do not skip the rubric approval gate in the workflow.
+
+@AGENTS.md
+@README.md
+@CLAUDE-STATE.md
