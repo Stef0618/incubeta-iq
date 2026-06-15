@@ -14,7 +14,14 @@ export function getAnthropic(): Anthropic {
     );
   }
   if (!client) {
-    client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    // maxRetries: the SDK retries 429s (and other transient errors) with
+    // exponential backoff, honoring the Retry-After header. Bumped above the
+    // default of 2 so batch scoring rides out brief output-TPM spikes instead
+    // of surfacing them as per-file failures.
+    client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      maxRetries: 4,
+    });
   }
   return client;
 }

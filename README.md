@@ -102,3 +102,14 @@ Sign-in is restricted to @incubeta.com Google accounts via NextAuth.js. No user 
 - Resumes are processed in-transit only. No file storage service (S3, GCS, etc.) is needed.
 - All Claude API keys and Google service account credentials are stored as server-side environment variables and never exposed to the browser.
 - If the server restarts mid-batch during a large resume upload, the scoring run will need to be restarted. For very large batches, consider adding client-side progress checkpointing.
+
+
+## Important Files
+
+All prompts sent to the Claude models live in `lib/ai/`. To change how the AI behaves, edit these two files: (nothing under `app/api/` or `components/` builds prompts.)
+
+**`lib/ai/rubric.ts`** — Step 2 (Opus). Builds the clarifying-questions call and the rubric-generation call. Holds the system prompts, tool definitions, and user-message templates that tell Opus how to infer categories and weights, write level descriptors, and propose red flags, bonuses, and disqualifiers.
+
+**`lib/ai/scoring.ts`** — Step 3 (Haiku). Scores one resume against the approved rubric. Holds the scoring system prompt, the `submit_assessment` tool schema (its field descriptions are also instructions), and the function that formats the rubric and resume into the user message. The weighted math, deductions, and banding are computed in this file server-side — never trusted to the model.
+
+`lib/ai/client.ts` holds no prompt text — just the model IDs (`RUBRIC_MODEL`, `SCORING_MODEL`) and the helper that extracts tool output from a response.

@@ -2,7 +2,7 @@
 
 ## Status
 **Phase:** Built, awaiting credentials
-**Last Updated:** 2026-06-11
+**Last Updated:** 2026-06-15
 
 ## What Exists
 - `README.md` — product spec and user-facing workflow documentation
@@ -28,11 +28,18 @@ The entire app, end to end:
 - Anthropic key is in `.env.local`; Stefan ran the full flow end to end including a real batch test in Step 3 (synthetic resumes in `test-resumes/`)
 - Optional-criteria path verified live: Opus proposes categories/weights from a bare JD and asks for confirmation
 
-## Known Issues — Error Messaging (get to the bottom of this first)
-Two error kinds surfaced during the 2026-06-11 batch test, both shown raw in the Step 3 file list:
+## Resolved — Step 3 Scoring Errors (2026-06-15)
+Both error kinds from the 2026-06-11 batch test are fixed. All changes are in `lib/ai/scoring.ts` (plus one in `lib/ai/client.ts`). `tsc` + `lint` pass; Stefan ran two clean batch tests with zero manual retries.
 
-1. **Anthropic rate limit.** Raw JSON blob surfaced in the UI: `rate_limit_error: This request would exceed your organization's rate limit of 10,000 output tokens per minute (model: claude-haiku-4-5-20251001)`. With client concurrency 3 and `max_tokens: 4000` per scoring call, batch runs can blow through the 10k output-TPM tier limit. Fix direction: catch 429s in `lib/ai/scoring.ts` and retry with backoff (the SDK has built-in retry options), surface a human message instead of the JSON blob, and consider lowering max_tokens or concurrency. Raising the org tier (console.anthropic.com/settings/billing) is the throughput fix.
-2. **`raw.categoryScores.find is not a function`** (many occurrences). Haiku occasionally returns off-schema tool output: `categoryScores` arrives as something other than an array (likely a JSON-encoded string). `lib/ai/scoring.ts` trusts the shape and calls `.find` on it. Fix direction: normalize the raw tool input before use (parse string → array, default non-arrays to empty, same for `redFlagsTriggered` / `bonusesAwarded`) and retry the call once on schema violation. Note: failures like these are contained per-file by design; Retry Failed in the UI often succeeds.
+1. **`raw.categoryScores.find is not a function`** (off-schema output) — **FIXED.**
+   - **Diagnosis (confirmed via terminal logging, not assumed):** Haiku intermittently returns `categoryScores` as a *JSON-encoded string* rather than an array. The outer tool-call JSON parses fine, but the inner string has botched quote-escaping (single- instead of double-escaped), so `JSON.parse` on it fails. Truncation was ruled out: real responses run ~1.1–1.5k output tokens, well under the cap, `stop_reason=tool_use`. Failures are stochastic (temperature was at the 1.0 default), which is why repeated retries eventually clear them.
+   - **Fix:** (a) `asArray()` helper normalizes the three array fields (`categoryScores`, `redFlagsTriggered`, `bonusesAwarded`) — parses string→array, defaults non-arrays/unparseable to `[]`. Valid-string cases are now recovered silently. (b) A non-disqualified candidate with zero parseable category scores is treated as a hard failure (throws "Retry scoring") instead of silently defaulting every category to 1 and burying the candidate. (c) **Internal retry loop** in `scoreResume` (`MAX_SCORING_ATTEMPTS = 5`, small increasing backoff) resamples on off-schema *or* truncation before surfacing a failure — moves the retries off the HR user's finger onto the server. (d) Scoring math extracted into `buildScore()` (unchanged arithmetic). (e) `temperature: 0.5` on the scoring call — cuts the off-schema rate and improves score reproducibility while keeping enough variance that the retry loop can draw a clean response. **Do not set temperature to 0** — that would make off-schema responses reproduce on every retry and defeat the loop.
+
+2. **Anthropic rate limit (429)** — **FIXED.**
+   - **Diagnosis:** With client concurrency 3 and `max_tokens: 4000`, the rate limiter's upfront reservation (3 × 4000 = 12k) exceeded the 10k output-TPM tier ceiling. Intermittent because actual responses are far smaller than max_tokens; only trips when calls cluster in one 60s window.
+   - **Fix:** (a) `maxRetries: 4` on the Anthropic client (`client.ts`) — SDK retries 429s with backoff, honoring Retry-After. (b) `max_tokens` lowered 4000→3000, which puts the worst-case reservation at 3 × 3000 = 9k, under the limit, while leaving ample headroom over the ~1.5k responses actually produce (truncation is now also guarded explicitly). (c) Surviving 429s are caught as `Anthropic.RateLimitError` and rethrown as a plain-English message instead of the raw JSON blob. Note: raising the org tier (console.anthropic.com/settings/billing) is still the real throughput ceiling.
+
+- **`SCORE_DEBUG` env var:** set to `1` to print `[SCORE-FAIL]` one-line failure diagnostics (truncation vs off-schema vs rate-limit, with token counts) to the server log. Off by default. Used to diagnose the above; left in place gated behind the flag.
 
 ## Gotchas / Decisions
 - **Node 20.15.0 on this machine**: pdf-parse v2 requires ≥ 20.16, so pdf-parse is pinned to **1.1.1** (imported via `pdf-parse/lib/pdf-parse.js` to dodge its debug-mode entrypoint; local d.ts in `types/pdf-parse-lib.d.ts`). If Node gets upgraded, v2 is an option but not required.
@@ -43,8 +50,8 @@ Two error kinds surfaced during the 2026-06-11 batch test, both shown raw in the
 - The block-file-ops hook false-positives on `[...nextauth]` paths (reads `...` as traversal); that file was created via shell
 - Scoring math is server-side by design: model submits per-category 1-4 scores + flag IDs, server computes weighted sum, deductions, bonuses, band
 
-## Next Steps (Stefan's stated priority order, 2026-06-11)
-1. **Get to the bottom of the error messaging** (the two error kinds above)
+## Next Steps (Stefan's stated priority order)
+1. ~~**Get to the bottom of the error messaging**~~ — DONE 2026-06-15 (see Resolved section above)
 2. **Host it publicly** (Vercel deploy: env vars, production NEXTAUTH_URL)
 3. **Connect a Google spreadsheet** (service account creds + GOOGLE_SHEETS_ID in env; share the sheet with the service account email as editor)
 4. **Manage authorization** (OAuth client ID/secret + NEXTAUTH_SECRET; verify the @incubeta.com domain restriction with a real account)
