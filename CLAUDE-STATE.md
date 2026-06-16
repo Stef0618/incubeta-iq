@@ -52,9 +52,9 @@ Both error kinds from the 2026-06-11 batch test are fixed. All changes are in `l
 
 ## Next Steps (Stefan's stated priority order)
 1. ~~**Get to the bottom of the error messaging**~~ — DONE 2026-06-15 (see Resolved section above)
-2. **Host it publicly** (Vercel deploy: env vars, production NEXTAUTH_URL)
-3. **Connect a Google spreadsheet** (service account creds + GOOGLE_SHEETS_ID in env; share the sheet with the service account email as editor)
-4. **Manage authorization** (OAuth client ID/secret + NEXTAUTH_SECRET; verify the @incubeta.com domain restriction with a real account)
+2. ~~**Host it publicly**~~ — DONE 2026-06-15 (deployed to Vercel)
+3. **Connect a Google spreadsheet** (service account creds + GOOGLE_SHEETS_ID in env; share the sheet with the service account email as editor) — IN PROGRESS
+4. **Manage authorization** — SHIPPING domain-only (@incubeta.com), the only tested path. Decision 2026-06-15: a passkey idea was considered and rejected (shared secret leaks, looks amateur, weaker than domain/group gates). The finer **group check is built but OFF by default and untested** (Stefan has no Workspace domain to test against). `lib/auth/group.ts` checks membership via Admin SDK Directory API (`members.hasMember`) with domain-wide delegation + admin impersonation; `auth.ts` signIn does domain-only unless `WORKSPACE_GROUP_EMAIL` + `WORKSPACE_ADMIN_SUBJECT` are set, in which case the group gate auto-activates and fails closed. Verifier: `scripts/verify-group-access.mjs`. Setup (group steps 5/6 marked OPTIONAL + untested): `docs/incubeta-admin-setup.md`. tsc + lint pass. Group path stays dormant in the repo so Incubeta can enable + validate it later by following the runbook.
 
 ## Known Blockers
 - Need Google service account credentials from Incubeta Workspace admin
