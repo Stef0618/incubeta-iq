@@ -3,7 +3,13 @@
 *Internal use only — not for client distribution*
 
 ---
+## What It Does
 
+Recruit IQ automates the first-stage resume triage process for any role Incubeta hires for. It reads a Job Description and a structured scoring model, builds a weighted evaluation rubric using AI, scores uploaded resumes against that rubric, and writes a ranked shortlist directly to Google Sheets — in minutes rather than days.
+
+The target output is a ranked list of the top 25 candidates for any role, each with a score, a band (Advance / Consider / Borderline / Decline), per-category breakdowns, red flag annotations, and an AI-written evaluator summary.
+
+---
 ## Quick Start
 
 Get a local instance running in five steps.
@@ -40,8 +46,8 @@ For a production build, use `npm run build` followed by `npm run start`.
 Security here is governed entirely by which fields you fill in `.env.local`.
 
 **User authentication — opt-in via OAuth.** Access control keys off `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (`auth.ts`):
-- **Filled in** → NextAuth + Google OAuth is active, and sign-in is scoped to `@incubeta.com` accounts only. The domain check is enforced server-side in the `signIn` callback, not just hinted to Google, so non-Incubeta accounts are rejected even if they reach the OAuth screen.
-- **Left blank** → auth auto-disables and the app runs **open** on localhost. This is intended for local development only. Anyone who can reach the host can use it. **Do not deploy publicly without these keys set.**
+- **If filled in** → NextAuth + Google OAuth is active, and sign-in is scoped to `@incubeta.com` accounts only. The domain check is enforced server-side in the `signIn` callback, not just hinted to Google, so non-Incubeta accounts are rejected even if they reach the OAuth screen.
+- **If left blank** → auth auto-disables and the app runs **open** on localhost. This is intended for local development only. Anyone who can reach the host can use it. **Do not deploy publicly without these keys set.**
 
 If your team forks this, the domain restriction is a single constant (`ALLOWED_DOMAIN` in `auth.ts`) — change it to your own domain to scope access to your organization.
 
@@ -49,17 +55,10 @@ If your team forks this, the domain restriction is a single constant (`ALLOWED_D
 
 **No candidate data is persisted.** Resumes are parsed to plain text in-memory, scored, then discarded — nothing is written to disk or a database. Only the scored JSON output is retained in session state and pushed to Google Sheets on export. This is intentional for PII and GDPR hygiene; do not add a file store.
 
-**Google Sheets uses a shared service account.** Export writes via a service account (not per-user OAuth), so access to the destination sheet is controlled at the Google Drive level by the Workspace admin sharing the sheet with the service account email.
+**Google Sheets uses a shared service account.** Export writes via a service account (not per-user OAuth), so access to the destination sheet is controlled at the Google Drive level by the Workspace admin sharing the sheet with the service account email. Google sheets functionality is automatically turned on when you fill in the relevant fields in `.env.local`.
 
 ---
 
-## What It Does
-
-Recruit IQ automates the first-stage resume triage process for any role Incubeta hires for. It reads a Job Description and a structured scoring model, builds a weighted evaluation rubric using AI, scores uploaded resumes against that rubric, and writes a ranked shortlist directly to Google Sheets — in minutes rather than days.
-
-The target output is a ranked list of the top 25 candidates for any role, each with a score, a band (Advance / Consider / Borderline / Decline), per-category breakdowns, red flag annotations, and an AI-written evaluator summary.
-
----
 
 ## The Four-Step Workflow
 
