@@ -7,7 +7,7 @@
 ## What Exists
 - `README.md` — product spec and user-facing workflow documentation
 - `CLAUDE.md` — developer context, tech stack, architecture rules
-- `.env.local.example` — required environment variable template (matches code exactly)
+- `.env.local` — required environment variable template (matches code exactly)
 - Full application code (see below)
 
 ## What's Been Built (2026-06-11)

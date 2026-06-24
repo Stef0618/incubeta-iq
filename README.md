@@ -4,6 +4,55 @@
 
 ---
 
+## Quick Start
+
+Get a local instance running in five steps.
+
+1. **Clone the repo**
+   ```bash
+   git clone <your-fork-url> incubeta-iq && cd incubeta-iq
+   ```
+2. **Use a current Node toolchain.** The app targets Next.js 16 and needs **Node ≥ 20.15** (pdf-parse is pinned to 1.1.1 for this reason). If you use nvm, make sure it and your Node version are up to date:
+   ```bash
+   nvm install --lts && nvm use --lts
+   node -v   # confirm ≥ 20.15
+   ```
+3. **Install dependencies**
+   ```bash
+   npm install
+   ```
+4. **Set up environment variables.** Copy the template and fill in the fields you need:
+   ```bash
+   cp .env.example .env.local
+   ```
+   At minimum, `ANTHROPIC_API_KEY` is required to generate rubrics and score resumes. The Google Sheets and OAuth blocks are optional for local dev (see [State of Security](#state-of-security) for what leaving them blank means).
+5. **Run the dev server**
+   ```bash
+   npm run dev      # serves on http://localhost:3000
+   ```
+
+For a production build, use `npm run build` followed by `npm run start`.
+
+---
+
+## State of Security
+
+Security here is deliberately tiered so the app is frictionless in local dev and locked down in production. It is governed entirely by which fields you fill in `.env.local`.
+
+**User authentication — opt-in via OAuth.** Access control keys off `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (`auth.ts`):
+- **Filled in** → NextAuth + Google OAuth is active, and sign-in is scoped to `@incubeta.com` accounts only. The domain check is enforced server-side in the `signIn` callback, not just hinted to Google, so non-Incubeta accounts are rejected even if they reach the OAuth screen.
+- **Left blank** → auth auto-disables and the app runs **open** on localhost. This is intended for local development only. Anyone who can reach the host can use it. **Do not deploy publicly without these keys set.**
+
+If your team forks this, the domain restriction is a single constant (`ALLOWED_DOMAIN` in `auth.ts`) — change it to your own domain to scope access to your organization.
+
+**Credentials stay server-side.** All Anthropic API keys and Google service account credentials are read only in server-side code (API routes and `lib/`) and are never exposed to the browser.
+
+**No candidate data is persisted.** Resumes are parsed to plain text in-memory, scored, then discarded — nothing is written to disk or a database. Only the scored JSON output is retained in session state and pushed to Google Sheets on export. This is intentional for PII and GDPR hygiene; do not add a file store.
+
+**Google Sheets uses a shared service account.** Export writes via a service account (not per-user OAuth), so access to the destination sheet is controlled at the Google Drive level by the Workspace admin sharing the sheet with the service account email.
+
+---
+
 ## What It Does
 
 Recruit IQ automates the first-stage resume triage process for any role Incubeta hires for. It reads a Job Description and a structured scoring model, builds a weighted evaluation rubric using AI, scores uploaded resumes against that rubric, and writes a ranked shortlist directly to Google Sheets — in minutes rather than days.
