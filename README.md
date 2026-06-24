@@ -37,7 +37,7 @@ For a production build, use `npm run build` followed by `npm run start`.
 
 ## State of Security
 
-Security here is deliberately tiered so the app is frictionless in local dev and locked down in production. It is governed entirely by which fields you fill in `.env.local`.
+Security here is governed entirely by which fields you fill in `.env.local`.
 
 **User authentication — opt-in via OAuth.** Access control keys off `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (`auth.ts`):
 - **Filled in** → NextAuth + Google OAuth is active, and sign-in is scoped to `@incubeta.com` accounts only. The domain check is enforced server-side in the `signIn` callback, not just hinted to Google, so non-Incubeta accounts are rejected even if they reach the OAuth screen.
