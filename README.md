@@ -45,7 +45,7 @@ For a production build, use `npm run build` followed by `npm run start`.
 
 Security here is governed entirely by which fields you fill in `.env.local`.
 
-**User authentication — opt-in via OAuth.** Access control keys off `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (`auth.ts`):
+**User authentication — opt-in via OAuth.** Access control uses `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (`auth.ts`):
 - **If filled in** → NextAuth + Google OAuth is active, and sign-in is scoped to `@incubeta.com` accounts only. The domain check is enforced server-side in the `signIn` callback, not just hinted to Google, so non-Incubeta accounts are rejected even if they reach the OAuth screen.
 - **If left blank** → auth auto-disables and the app runs **open** on localhost. This is intended for local development only. Anyone who can reach the host can use it. **Do not deploy publicly without these keys set.**
 
